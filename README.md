@@ -20,7 +20,8 @@ Backend API for an online education platform. The project uses a clean architect
 - FastAPI
 - SQLAlchemy async
 - Alembic
-- SQLite with `aiosqlite`
+- PostgreSQL with `asyncpg`
+- SQLite fallback with `aiosqlite`
 - Redis
 - Docker
 - pytest / pytest-asyncio
@@ -48,12 +49,20 @@ APP_ENV=development
 APP_TITLE=FastAPI Education
 APP_DEBUG=true
 API_PREFIX=/api
-DATABASE_URL=sqlite+aiosqlite:///./fastapi_education.db
+DATABASE_URL=postgresql+asyncpg://perminof:perminof@localhost:5432/perminof
+# SQLite fallback:
+# DATABASE_URL=sqlite+aiosqlite:///./fastapi_education.db
+# Docker Compose SQLite fallback:
+# COMPOSE_DATABASE_URL=sqlite+aiosqlite:////data/fastapi_education.db
 DATABASE_ECHO=false
 JWT_SECRET_KEY=change-me-in-local-env
 REDIS_URL=redis://localhost:6379/0
 SUBMISSION_QUEUE_NAME=code-submissions
 ```
+
+`DATABASE_URL` is the database switch. Use PostgreSQL for the normal runtime. Use the SQLite URL above when PostgreSQL is not available locally.
+
+Docker Compose uses PostgreSQL service DNS by default. Use `COMPOSE_DATABASE_URL` only when you want to override the database URL inside containers.
 
 ## Local Run
 
@@ -79,6 +88,7 @@ docker compose up --build
 This starts:
 
 - `api` on `http://localhost:8000`
+- `postgres` on `localhost:5432`
 - `redis` on `localhost:6379`
 - `worker` for asynchronous code submissions
 

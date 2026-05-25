@@ -6,7 +6,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: sqlite+aiosqlite:////data/fastapi_education.db
+      DATABASE_URL: ${COMPOSE_DATABASE_URL:-postgresql+asyncpg://perminof:perminof@postgres:5432/perminof}
       REDIS_URL: redis://redis:6379/0
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-compose}
     ports:
@@ -14,6 +14,8 @@ services:
     volumes:
       - app-data:/data
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -25,13 +27,15 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: sqlite+aiosqlite:////data/fastapi_education.db
+      DATABASE_URL: ${COMPOSE_DATABASE_URL:-postgresql+asyncpg://perminof:perminof@postgres:5432/perminof}
       REDIS_URL: redis://redis:6379/0
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-compose}
     volumes:
       - app-data:/data
       - worker-docker:/var/lib/docker
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
     privileged: true
@@ -51,7 +55,25 @@ services:
       retries: 10
     restart: unless-stopped
 
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: perminof
+      POSTGRES_USER: perminof
+      POSTGRES_PASSWORD: perminof
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U perminof -d perminof"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
 volumes:
   app-data:
   redis-data:
   worker-docker:
+  postgres-data:
