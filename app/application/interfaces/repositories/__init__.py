@@ -6,6 +6,7 @@ from app.application.interfaces.repositories.module_repository import ModuleRepo
 from app.application.interfaces.repositories.progress_repository import ProgressRepository
 from app.application.interfaces.repositories.question_attempt_repository import QuestionAttemptRepository
 from app.application.interfaces.repositories.question_repository import QuestionRepository
+from app.application.interfaces.repositories.refresh_session_repository import RefreshSessionRepository
 from app.application.interfaces.repositories.section_repository import SectionRepository
 from app.application.interfaces.repositories.task_attempt_repository import TaskAttemptRepository
 from app.application.interfaces.repositories.task_repository import TaskRepository
@@ -24,6 +25,7 @@ __all__ = [
     'AnswerOptionRepository',
     'UserRepository',
     'QuestionAttemptRepository',
+    'RefreshSessionRepository',
     'TaskRepository',
     'TaskAttemptRepository',
     'ProgressRepository',

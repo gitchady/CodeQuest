@@ -13,7 +13,9 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 import app.presentation.api.dependencies as api_dependencies
 from app.bootstrap.build_submission_queue import build_submission_queue
@@ -26,6 +28,7 @@ from app.infrastructure.database.models import (
     ProgressModel,
     QuestionAttemptModel,
     QuestionModel,
+    RefreshSessionModel,
     SectionModel,
     UserModel,
     CodeSubmissionModel,
@@ -39,20 +42,43 @@ from app.infrastructure.queues.in_memory_submission_queue import InMemorySubmiss
 from app.main import create_app
 
 
+def ensure_safe_test_database_url(database_url: str) -> None:
+    if os.environ.get('ALLOW_TEST_DATABASE_DROP') == '1':
+        return
+
+    url = make_url(database_url)
+    if url.get_backend_name() == 'sqlite':
+        return
+
+    database_name = (url.database or '').lower()
+    if 'test' in database_name:
+        return
+
+    raise RuntimeError(
+        'Refusing to drop database schema for non-test database. '
+        'Set ALLOW_TEST_DATABASE_DROP=1 to override.'
+    )
+
+
 @pytest_asyncio.fixture(scope='session')
 async def test_engine(tmp_path_factory) -> AsyncIterator:
-    database_dir = tmp_path_factory.mktemp("test_db")
-    database_path = Path(database_dir) / "test_fastapi_education.db"
-    database_url = f"sqlite+aiosqlite:///{database_path}"
+    database_url = os.environ.get('TEST_DATABASE_URL')
+    database_path = None
+    if database_url is None:
+        database_dir = tmp_path_factory.mktemp("test_db")
+        database_path = Path(database_dir) / "test_fastapi_education.db"
+        database_url = f"sqlite+aiosqlite:///{database_path}"
 
-    engine = create_async_engine(database_url, future=True)
+    ensure_safe_test_database_url(database_url)
+    engine = create_async_engine(database_url, future=True, poolclass=NullPool)
     async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
     yield engine
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
-    if database_path.exists():
+    if database_path is not None and database_path.exists():
         os.remove(database_path)
 
 
@@ -92,6 +118,7 @@ async def clear_database(session_factory) -> None:
     async with session_factory() as session:
         for model in [
             AnswerOptionModel,
+            RefreshSessionModel,
             QuestionAttemptModel,
             TaskAttemptModel,
             CodeSubmissionModel,

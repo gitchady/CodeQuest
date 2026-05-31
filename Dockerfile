@@ -16,6 +16,10 @@ EXPOSE 8000
 
 FROM app-base AS api
 
+COPY docker/api-entrypoint.sh /usr/local/bin/api-entrypoint.sh
+RUN chmod +x /usr/local/bin/api-entrypoint.sh
+
+ENTRYPOINT ["api-entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 FROM app-base AS worker

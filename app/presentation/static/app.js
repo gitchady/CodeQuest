@@ -2,6 +2,8 @@ const state = {
   accessToken: localStorage.getItem("perminof.accessToken") || "",
   refreshToken: localStorage.getItem("perminof.refreshToken") || "",
   currentCourse: null,
+  currentUser: null,
+  courses: [],
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -11,8 +13,15 @@ function setStatus(message) {
 }
 
 function setTokenStatus() {
-  $("#tokenStatus").textContent = state.accessToken ? "Signed in" : "Guest";
+  const role = state.currentUser?.role || "guest";
+  $("#tokenStatus").textContent = state.accessToken ? `Signed in: ${role}` : "Guest";
   $("#logoutButton").classList.toggle("hidden", !state.accessToken);
+  $("#studioUserRole").textContent = role;
+  const canManage = role === "author" || role === "admin";
+  $("#studioAccess").textContent = canManage
+    ? "Create and extend learning content."
+    : "Sign in as author or admin.";
+  $("#studioView").classList.toggle("locked", !canManage);
 }
 
 async function request(path, options = {}) {
@@ -30,7 +39,17 @@ async function request(path, options = {}) {
   return response.status === 204 ? null : response.json();
 }
 
+function switchView(view) {
+  const studio = view === "studio";
+  $("#workspaceView").classList.toggle("hidden", studio);
+  $("#studioView").classList.toggle("hidden", !studio);
+  $("#workspaceTab").classList.toggle("active", !studio);
+  $("#studioTab").classList.toggle("active", studio);
+}
+
 function renderCourses(courses) {
+  state.courses = courses;
+  $("#studioCourseCount").textContent = String(courses.length);
   const list = $("#courseList");
   if (!courses.length) {
     list.innerHTML = '<p class="empty">No courses yet.</p>';
@@ -43,6 +62,7 @@ function renderCourses(courses) {
         <button class="item-button" type="button" data-course-id="${course.id}">
           <strong>${escapeHtml(course.title)}</strong>
           <span>${escapeHtml(course.description)}</span>
+          <span>ID ${escapeHtml(course.id)}</span>
         </button>
       `,
     )
@@ -65,11 +85,30 @@ async function loadCourses() {
   }
 }
 
+async function loadMe() {
+  if (!state.accessToken) {
+    state.currentUser = null;
+    setTokenStatus();
+    return;
+  }
+  try {
+    state.currentUser = await request("/api/auth/me");
+  } catch {
+    state.accessToken = "";
+    state.refreshToken = "";
+    localStorage.removeItem("perminof.accessToken");
+    localStorage.removeItem("perminof.refreshToken");
+    state.currentUser = null;
+  }
+  setTokenStatus();
+}
+
 async function loadCourseStructure(courseId) {
   setStatus("Loading structure");
   const course = await request(`/api/courses/${courseId}/structure`);
   state.currentCourse = course;
   $("#courseTitle").textContent = course.title;
+  $("#moduleCourseIdInput").value = course.id;
   renderStructure(course);
   setStatus("Structure loaded");
 }
@@ -80,7 +119,8 @@ function renderStructure(course) {
       (module) => `
         <section class="module">
           <p class="module-title">${escapeHtml(module.title)}</p>
-          ${module.sections.map(renderSection).join("")}
+          <p class="muted">Module ID ${escapeHtml(module.id)}</p>
+          ${module.sections.map((section) => renderSection(section, module.id)).join("")}
         </section>
       `,
     )
@@ -89,9 +129,21 @@ function renderStructure(course) {
   document.querySelectorAll("[data-kind]").forEach((button) => {
     button.addEventListener("click", () => loadDetail(button.dataset.kind, button.dataset.id));
   });
+
+  document.querySelectorAll("[data-module-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      $("#sectionModuleIdInput").value = button.dataset.moduleId;
+    });
+  });
+
+  document.querySelectorAll("[data-section-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      $("#lectureSectionIdInput").value = button.dataset.sectionId;
+    });
+  });
 }
 
-function renderSection(section) {
+function renderSection(section, moduleId) {
   const lectures = section.lectures
     .map((lecture) => nodeButton("lecture", lecture.id, lecture.title, "Lecture"))
     .join("");
@@ -108,7 +160,12 @@ function renderSection(section) {
   return `
     <div>
       <p class="section-title">${escapeHtml(section.title)}</p>
-      <div class="list">${lectures}${questions}${tasks}${codeTasks}</div>
+      <p class="muted">Section ID ${escapeHtml(section.id)}</p>
+      <div class="list">
+        <button class="item-button" type="button" data-module-id="${moduleId}">Use module for new section</button>
+        <button class="item-button" type="button" data-section-id="${section.id}">Use section for new lecture</button>
+        ${lectures}${questions}${tasks}${codeTasks}
+      </div>
     </div>
   `;
 }
@@ -118,6 +175,7 @@ function nodeButton(kind, id, title, label) {
     <button class="item-button" type="button" data-kind="${kind}" data-id="${id}">
       <strong>${escapeHtml(title)}</strong>
       <span>${escapeHtml(label)}</span>
+      <span>ID ${escapeHtml(id)}</span>
     </button>
   `;
 }
@@ -234,6 +292,22 @@ async function submitLearning(path, body) {
   }
 }
 
+async function submitAdmin(path, body) {
+  if (!state.accessToken) {
+    $("#studioResult").textContent = "Sign in as author or admin.";
+    return null;
+  }
+  try {
+    const result = await request(path, { method: "POST", body: JSON.stringify(body) });
+    $("#studioResult").textContent = JSON.stringify(result, null, 2);
+    await loadCourses();
+    return result;
+  } catch (error) {
+    $("#studioResult").textContent = error.message;
+    return null;
+  }
+}
+
 async function login(event) {
   event.preventDefault();
   try {
@@ -248,7 +322,7 @@ async function login(event) {
     state.refreshToken = result.refresh_token;
     localStorage.setItem("perminof.accessToken", state.accessToken);
     localStorage.setItem("perminof.refreshToken", state.refreshToken);
-    setTokenStatus();
+    await loadMe();
     setStatus("Signed in");
   } catch (error) {
     setStatus(error.message);
@@ -258,10 +332,48 @@ async function login(event) {
 function logout() {
   state.accessToken = "";
   state.refreshToken = "";
+  state.currentUser = null;
   localStorage.removeItem("perminof.accessToken");
   localStorage.removeItem("perminof.refreshToken");
   setTokenStatus();
   setStatus("Signed out");
+}
+
+function bindAdminForms() {
+  $("#createCourseForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await submitAdmin("/api/admin/courses", {
+      title: $("#courseTitleInput").value,
+      description: $("#courseDescriptionInput").value,
+    });
+  });
+
+  $("#createModuleForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await submitAdmin(`/api/admin/courses/${$("#moduleCourseIdInput").value}/modules`, {
+      title: $("#moduleTitleInput").value,
+      description: $("#moduleDescriptionInput").value,
+      position: Number($("#modulePositionInput").value),
+    });
+  });
+
+  $("#createSectionForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await submitAdmin(`/api/admin/modules/${$("#sectionModuleIdInput").value}/sections`, {
+      title: $("#sectionTitleInput").value,
+      description: $("#sectionDescriptionInput").value,
+      position: Number($("#sectionPositionInput").value),
+    });
+  });
+
+  $("#createLectureForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await submitAdmin(`/api/admin/sections/${$("#lectureSectionIdInput").value}/lectures`, {
+      title: $("#lectureTitleInput").value,
+      content: $("#lectureContentInput").value,
+      position: Number($("#lecturePositionInput").value),
+    });
+  });
 }
 
 function escapeHtml(value) {
@@ -276,6 +388,11 @@ function escapeHtml(value) {
 $("#loginForm").addEventListener("submit", login);
 $("#logoutButton").addEventListener("click", logout);
 $("#refreshCourses").addEventListener("click", loadCourses);
+$("#studioRefresh").addEventListener("click", loadCourses);
+$("#workspaceTab").addEventListener("click", () => switchView("workspace"));
+$("#studioTab").addEventListener("click", () => switchView("studio"));
 
+bindAdminForms();
+loadMe();
 setTokenStatus();
 loadCourses();

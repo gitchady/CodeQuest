@@ -6,6 +6,7 @@ from app.infrastructure.database.models.module_model import ModuleModel
 from app.infrastructure.database.models.progress_model import ProgressModel
 from app.infrastructure.database.models.question_attempt_model import QuestionAttemptModel
 from app.infrastructure.database.models.question_model import QuestionModel
+from app.infrastructure.database.models.refresh_session_model import RefreshSessionModel
 from app.infrastructure.database.models.section_model import SectionModel
 from app.infrastructure.database.models.task_attempt_model import TaskAttemptModel
 from app.infrastructure.database.models.task_model import TaskModel
@@ -24,6 +25,7 @@ __all__ = [
     'QuestionModel',
     'AnswerOptionModel',
     'QuestionAttemptModel',
+    'RefreshSessionModel',
     'TaskModel',
     'TaskAttemptModel',
     'ProgressModel',

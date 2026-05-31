@@ -1,6 +1,8 @@
+import hashlib
+import secrets
 from datetime import datetime, timedelta, timezone
-from uuid import uuid4
 from uuid import UUID
+from uuid import uuid4
 
 import jwt
 from jwt.exceptions import InvalidTokenError as JwtInvalidTokenError
@@ -29,12 +31,15 @@ class JwtTokenService(TokenService):
             minutes=self.access_token_expire_minutes,
         )
 
-    def create_refresh_token(self, user_id: UUID, role: str) -> str:
-        return self._create_token(
-            user_id=user_id,
-            role=role,
-            token_type='refresh',
-            minutes=self.refresh_token_expire_minutes,
+    def create_refresh_token(self) -> str:
+        return secrets.token_urlsafe(64)
+
+    def hash_refresh_token(self, token: str) -> str:
+        return hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+    def get_refresh_token_expires_at(self) -> datetime:
+        return datetime.now(timezone.utc) + timedelta(
+            minutes=self.refresh_token_expire_minutes
         )
 
     def _create_token(self, user_id: UUID, role: str, token_type: str, minutes: int) -> str:
@@ -52,9 +57,6 @@ class JwtTokenService(TokenService):
 
     def get_user_id(self, token: str) -> UUID:
         return self._get_user_id(token=token, expected_type='access')
-
-    def get_refresh_user_id(self, token: str) -> UUID:
-        return self._get_user_id(token=token, expected_type='refresh')
 
     def _get_user_id(self, token: str, expected_type: str) -> UUID:
         try:

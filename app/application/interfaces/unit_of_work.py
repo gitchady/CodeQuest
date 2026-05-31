@@ -8,6 +8,7 @@ from app.application.interfaces.repositories import (
     ProgressRepository,
     QuestionAttemptRepository,
     QuestionRepository,
+    RefreshSessionRepository,
     SectionRepository,
     TaskAttemptRepository,
     TaskRepository,
@@ -27,6 +28,7 @@ class UnitOfWork(ABC):
     questions: QuestionRepository
     answer_options: AnswerOptionRepository
     question_attempts: QuestionAttemptRepository
+    refresh_sessions: RefreshSessionRepository
     tasks: TaskRepository
     task_attempts: TaskAttemptRepository
     progress: ProgressRepository

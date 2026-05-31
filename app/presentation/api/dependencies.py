@@ -30,6 +30,7 @@ from app.application.use_cases.sections.delete_section import DeleteSectionUseCa
 from app.application.use_cases.sections.update_section import UpdateSectionUseCase
 from app.application.interfaces.services.password_hasher import PasswordHasher
 from app.application.use_cases.auth.login_user import LoginUserUseCase
+from app.application.use_cases.auth.refresh_token import RefreshTokenUseCase
 from app.application.use_cases.auth.register_user import RegisterUserUseCase
 from app.application.interfaces.services.token_service import TokenService
 from app.infrastructure.security.jwt_token_service import JwtTokenService
@@ -207,6 +208,13 @@ def get_login_user_use_case() -> LoginUserUseCase:
     return LoginUserUseCase(
         uow=SqlAlchemyUnitOfWork(session_factory=SessionFactory),
         password_hasher=get_password_hasher(),
+        token_service=get_token_service(),
+    )
+
+
+def get_refresh_token_use_case() -> RefreshTokenUseCase:
+    return RefreshTokenUseCase(
+        uow=SqlAlchemyUnitOfWork(session_factory=SessionFactory),
         token_service=get_token_service(),
     )
 

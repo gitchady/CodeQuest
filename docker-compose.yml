@@ -4,9 +4,10 @@ services:
       context: .
       target: api
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
-      DATABASE_URL: ${COMPOSE_DATABASE_URL:-postgresql+asyncpg://postgres:1234@postgres:5432/postgres}
+      DATABASE_URL: ${COMPOSE_DATABASE_URL:-postgresql+asyncpg://perminof:perminof@postgres:5432/perminof}
       CELERY_BROKER_URL: amqp://perminof:perminof@rabbitmq:5672//
       CELERY_RESULT_BACKEND: redis://redis:6379/1
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-compose}
@@ -30,9 +31,10 @@ services:
       context: .
       target: worker
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
-      DATABASE_URL: ${COMPOSE_DATABASE_URL:-postgresql+asyncpg://postgres:1234@postgres:5432/postgres}
+      DATABASE_URL: ${COMPOSE_DATABASE_URL:-postgresql+asyncpg://perminof:perminof@postgres:5432/perminof}
       CELERY_BROKER_URL: amqp://perminof:perminof@rabbitmq:5672//
       CELERY_RESULT_BACKEND: redis://redis:6379/1
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-compose}
@@ -86,15 +88,15 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: "1234"
+      POSTGRES_DB: perminof
+      POSTGRES_USER: perminof
+      POSTGRES_PASSWORD: perminof
     ports:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      test: ["CMD-SHELL", "pg_isready -U perminof -d perminof"]
       interval: 5s
       timeout: 3s
       retries: 10

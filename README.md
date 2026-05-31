@@ -6,7 +6,7 @@ Backend API for an online education platform. The project uses a clean architect
 
 - Public course catalogue and course structure endpoints.
 - JWT authentication with student, author and admin roles.
-- Refresh-token endpoint and strict JWT token-type validation.
+- Opaque refresh-token sessions with server-side hash storage, `jti` tracking and strict JWT access-token validation.
 - API rate limiting for abuse protection.
 - Admin CRUD for courses, modules, sections and lectures.
 - Interactive questions with answer options and attempt tracking.
@@ -56,7 +56,7 @@ APP_ENV=development
 APP_TITLE=FastAPI Education
 APP_DEBUG=true
 API_PREFIX=/api
-DATABASE_URL=postgresql+asyncpg://postgres:1234@localhost:5432/postgres
+DATABASE_URL=postgresql+asyncpg://perminof:perminof@localhost:5432/perminof
 # SQLite fallback:
 # DATABASE_URL=sqlite+aiosqlite:///./fastapi_education.db
 # Docker Compose SQLite fallback:
@@ -88,7 +88,7 @@ uvicorn app.main:app --reload
 
 API docs:
 
-- Mini frontend: `http://localhost:8000/`
+- Student/admin frontend: `http://localhost:8000/`
 - Swagger UI: `http://localhost:8000/docs`
 - OpenAPI JSON: `http://localhost:8000/openapi.json`
 
@@ -109,6 +109,16 @@ This starts:
 - `grafana` on `http://localhost:3000`
 
 The worker runs Docker inside its container to execute submitted code. This requires privileged Docker support.
+
+For a production-style compose render, copy `.env.production.example` to
+`.env.production`, replace all `replace-me` values, then run:
+
+```powershell
+docker compose --env-file .env.production -f docker-compose.prod.yml up --build
+```
+
+The API image runs `alembic upgrade head` on startup by default. Set
+`RUN_MIGRATIONS=0` only when migrations are handled by a separate release step.
 
 ## Worker
 
@@ -136,17 +146,18 @@ Prometheus scrapes the API at `/metrics`. Grafana can use Prometheus at
 
 ## Account Security
 
-Login returns an access token and a refresh token. Use `POST /api/auth/refresh`
-with the refresh token to rotate both tokens. JWTs include a token type claim,
-and access-token protected routes reject refresh tokens. Refresh tokens are
-currently stateless; add a persisted token/session table before implementing
-server-side revocation or reuse detection.
+Login returns a JWT access token and an opaque refresh token. Use
+`POST /api/auth/refresh` with the refresh token to rotate both tokens. Access
+JWTs include a token type and `jti` claim. Refresh tokens are random strings,
+stored only as hashes in `refresh_sessions`, tracked by server-side `jti`, and
+revoked on rotation so an old refresh token cannot be reused.
 
 ## Mini Frontend
 
-FastAPI serves a simple student workspace at `/`. It can list courses, open
-course structure, view lectures/questions/tasks/code tasks, sign in, and submit
-learning work through the existing API.
+FastAPI serves a student workspace and author/admin studio at `/`. The workspace
+can list courses, open course structure, view lectures/questions/tasks/code
+tasks, sign in, and submit learning work. The studio can create courses,
+modules, sections and lectures through the existing admin API.
 
 ## Rate Limiting
 
@@ -165,7 +176,7 @@ Docker-dependent tests are skipped automatically when Docker is unavailable.
 ## CI
 
 GitHub Actions runs dependency installation, Docker Compose config rendering,
-`ruff`, `mypy`, `pytest`, and `pip-audit`.
+`ruff`, `mypy`, `pytest`, a PostgreSQL integration-test pass, and `pip-audit`.
 
 ## Main API Areas
 

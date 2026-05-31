@@ -12,11 +12,17 @@
       <header class="topbar">
         <div>
           <h1>Perminof</h1>
-          <p>Courses, lessons and practice.</p>
+          <p>Courses, lessons, practice and content studio.</p>
         </div>
-        <div class="session">
-          <span id="apiStatus">Idle</span>
-          <span id="tokenStatus">Guest</span>
+        <div class="topbar-actions">
+          <div class="tabs">
+            <button id="workspaceTab" class="tab active" type="button">Workspace</button>
+            <button id="studioTab" class="tab" type="button">Studio</button>
+          </div>
+          <div class="session">
+            <span id="apiStatus">Idle</span>
+            <span id="tokenStatus">Guest</span>
+          </div>
         </div>
       </header>
 
@@ -29,7 +35,7 @@
         </form>
       </section>
 
-      <section class="layout">
+      <section id="workspaceView" class="layout">
         <aside class="panel">
           <div class="panel-heading">
             <h2>Courses</h2>
@@ -50,6 +56,64 @@
           <article id="detailPanel">
             <p class="empty">Open an item from the course structure.</p>
           </article>
+        </section>
+      </section>
+
+      <section id="studioView" class="studio hidden">
+        <aside class="panel studio-rail">
+          <h2>Studio</h2>
+          <p id="studioAccess" class="empty">Sign in as author or admin.</p>
+          <div class="studio-stats">
+            <span><strong id="studioCourseCount">0</strong> courses</span>
+            <span><strong id="studioUserRole">guest</strong> role</span>
+          </div>
+        </aside>
+
+        <section class="panel studio-board">
+          <div class="panel-heading">
+            <h2>Content composer</h2>
+            <button id="studioRefresh" class="secondary" type="button">Refresh</button>
+          </div>
+          <div class="admin-grid">
+            <form id="createCourseForm" class="composer-form">
+              <h3>Create course</h3>
+              <input id="courseTitleInput" placeholder="Course title" required>
+              <textarea id="courseDescriptionInput" placeholder="Course description" required></textarea>
+              <button type="submit">Create course</button>
+            </form>
+
+            <form id="createModuleForm" class="composer-form">
+              <h3>Create module</h3>
+              <input id="moduleCourseIdInput" placeholder="Course ID" required>
+              <input id="moduleTitleInput" placeholder="Module title" required>
+              <input id="moduleDescriptionInput" placeholder="Module description" required>
+              <input id="modulePositionInput" type="number" min="1" value="1" required>
+              <button type="submit">Create module</button>
+            </form>
+
+            <form id="createSectionForm" class="composer-form">
+              <h3>Create section</h3>
+              <input id="sectionModuleIdInput" placeholder="Module ID" required>
+              <input id="sectionTitleInput" placeholder="Section title" required>
+              <input id="sectionDescriptionInput" placeholder="Section description">
+              <input id="sectionPositionInput" type="number" min="1" value="1" required>
+              <button type="submit">Create section</button>
+            </form>
+
+            <form id="createLectureForm" class="composer-form wide">
+              <h3>Create lecture</h3>
+              <input id="lectureSectionIdInput" placeholder="Section ID" required>
+              <input id="lectureTitleInput" placeholder="Lecture title" required>
+              <input id="lecturePositionInput" type="number" min="1" value="1" required>
+              <textarea id="lectureContentInput" placeholder="Lecture content" required></textarea>
+              <button type="submit">Create lecture</button>
+            </form>
+          </div>
+        </section>
+
+        <section class="panel studio-log">
+          <h2>Result</h2>
+          <pre id="studioResult" class="result-box">No admin action yet.</pre>
         </section>
       </section>
     </main>

@@ -55,6 +55,7 @@ async def test_login_returns_access_token(client, seeded_student_user):
     assert payload['token_type'] == 'bearer'
     assert 'access_token' in payload
     assert 'refresh_token' in payload
+    assert payload['refresh_token'].count('.') != 2
 
 
 @pytest.mark.asyncio
@@ -92,6 +93,33 @@ async def test_refresh_returns_new_tokens(client, seeded_student_user):
     assert payload['token_type'] == 'bearer'
     assert 'access_token' in payload
     assert 'refresh_token' in payload
+    assert payload['refresh_token'] != login_response.json()['refresh_token']
+
+
+@pytest.mark.asyncio
+async def test_refresh_rejects_reused_refresh_token(client, seeded_student_user):
+    login_response = await client.post(
+        '/api/auth/login',
+        json={
+            'email': 'student@example.com',
+            'password': 'strongpassword123',
+        },
+    )
+    old_refresh_token = login_response.json()['refresh_token']
+    first_refresh = await client.post(
+        '/api/auth/refresh',
+        json={'refresh_token': old_refresh_token},
+    )
+
+    response = await client.post(
+        '/api/auth/refresh',
+        json={'refresh_token': old_refresh_token},
+    )
+
+    assert first_refresh.status_code == 200
+    assert response.status_code == 401
+    payload = response.json()
+    assert payload['error'] == 'authentication_error'
 
 
 @pytest.mark.asyncio

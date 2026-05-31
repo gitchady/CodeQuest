@@ -17,6 +17,9 @@ from app.infrastructure.database.repositories.question_attempt_repository import
 
 from app.infrastructure.database.repositories.question_repository import \
     SqlAlchemyQuestionRepository
+from app.infrastructure.database.repositories.refresh_session_repository import (
+    SqlAlchemyRefreshSessionRepository,
+)
 
 from app.infrastructure.database.repositories.section_repository import (
     SqlAlchemySectionRepository,
@@ -47,6 +50,7 @@ __all__ = [
     "SqlAlchemyQuestionRepository",
     "SqlAlchemyAnswerOptionRepository",
     "SqlAlchemyQuestionAttemptRepository",
+    'SqlAlchemyRefreshSessionRepository',
     'SqlAlchemyTaskRepository',
     'SqlAlchemyTaskAttemptRepository',
     "SqlAlchemyProgressRepository",

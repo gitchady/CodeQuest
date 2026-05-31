@@ -25,6 +25,10 @@ class UserAlreadyExistsError(ApplicationError):
 class InvalidCredentialsError(ApplicationError):
     pass
 
+
+class InvalidRefreshTokenError(ApplicationError):
+    pass
+
 class QuestionNotFoundError(ApplicationError):
     pass
 

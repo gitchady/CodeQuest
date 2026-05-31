@@ -24,7 +24,7 @@ def create_app() -> FastAPI:
         description=(
             "Online school API built with clean architecture. "
             "At the first stage, the application supports public content reading, "
-            "JWT-based authentication, role-based access control and administrative "
+            "JWT access authentication, opaque refresh sessions, role-based access control and administrative "
             "management of courses, modules, sections and lectures."
         ),
         version="1.0.0",
