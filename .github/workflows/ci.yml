@@ -50,6 +50,9 @@ jobs:
       - name: Type check
         run: mypy app
 
+      - name: Prepare pytest temp directory
+        run: mkdir -p .pytest-tmp
+
       - name: Test
         run: pytest -q --basetemp=.pytest-tmp/ci
 
