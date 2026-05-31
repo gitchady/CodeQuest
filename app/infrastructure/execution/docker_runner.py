@@ -40,6 +40,7 @@ class DockerRunner:
         time_limit_seconds: int,
         memory_limit_mb: int,
     ) -> DockerRunResult:
+        self._make_bundle_readable(bundle_dir)
         container_name = f'code-submission-{uuid4().hex}'
         docker_command = [
             'docker',
@@ -118,6 +119,13 @@ class DockerRunner:
             exit_code=process.returncode,
             logs=logs,
         )
+
+    def _make_bundle_readable(self, bundle_dir: Path) -> None:
+        for path in (bundle_dir, *bundle_dir.rglob('*')):
+            try:
+                path.chmod(0o755 if path.is_dir() else 0o644)
+            except OSError:
+                continue
 
     def _is_docker_infrastructure_error(self, stderr: str) -> bool:
         normalized_stderr = stderr.lower()
