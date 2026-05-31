@@ -16,10 +16,7 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 import app.presentation.api.dependencies as api_dependencies
-from app.bootstrap.build_submission_queue import (
-    build_submission_queue,
-    get_redis_client,
-)
+from app.bootstrap.build_submission_queue import build_submission_queue
 from app.infrastructure.database.models import (
     Base,
     AnswerOptionModel,
@@ -435,7 +432,5 @@ async def seeded_tasks_tree(session_factory, seeded_author_user):
 @pytest_asyncio.fixture(autouse=True)
 async def reset_submission_queue_cache():
     build_submission_queue.cache_clear()
-    get_redis_client.cache_clear()
     yield
     build_submission_queue.cache_clear()
-    get_redis_client.cache_clear()

@@ -6,12 +6,16 @@ Backend API for an online education platform. The project uses a clean architect
 
 - Public course catalogue and course structure endpoints.
 - JWT authentication with student, author and admin roles.
+- Refresh-token endpoint and strict JWT token-type validation.
+- API rate limiting for abuse protection.
 - Admin CRUD for courses, modules, sections and lectures.
 - Interactive questions with answer options and attempt tracking.
 - Text tasks with exact, any-of and regex checking.
 - Code tasks for Python and Java submissions.
-- Asynchronous code-submission queue backed by Redis.
+- Asynchronous code-submission processing with Celery, RabbitMQ and Redis result storage.
 - Sandboxed code execution through Docker.
+- Prometheus metrics and Grafana dashboards.
+- Liveness/readiness endpoints and an embedded mini frontend.
 - Alembic migrations and async SQLAlchemy persistence.
 
 ## Tech Stack
@@ -22,7 +26,10 @@ Backend API for an online education platform. The project uses a clean architect
 - Alembic
 - PostgreSQL with `asyncpg`
 - SQLite fallback with `aiosqlite`
-- Redis
+- Celery
+- RabbitMQ
+- Redis as Celery result backend
+- Prometheus / Grafana
 - Docker
 - pytest / pytest-asyncio
 
@@ -49,15 +56,20 @@ APP_ENV=development
 APP_TITLE=FastAPI Education
 APP_DEBUG=true
 API_PREFIX=/api
-DATABASE_URL=postgresql+asyncpg://perminof:perminof@localhost:5432/perminof
+DATABASE_URL=postgresql+asyncpg://postgres:1234@localhost:5432/postgres
 # SQLite fallback:
 # DATABASE_URL=sqlite+aiosqlite:///./fastapi_education.db
 # Docker Compose SQLite fallback:
 # COMPOSE_DATABASE_URL=sqlite+aiosqlite:////data/fastapi_education.db
 DATABASE_ECHO=false
 JWT_SECRET_KEY=change-me-in-local-env
-REDIS_URL=redis://localhost:6379/0
-SUBMISSION_QUEUE_NAME=code-submissions
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
+JWT_REFRESH_TOKEN_EXPIRE_MINUTES=43200
+CELERY_BROKER_URL=amqp://guest:guest@localhost:5672//
+CELERY_RESULT_BACKEND=redis://localhost:6379/1
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_REQUESTS=120
+RATE_LIMIT_WINDOW_SECONDS=60
 ```
 
 `DATABASE_URL` is the database switch. Use PostgreSQL for the normal runtime. Use the SQLite URL above when PostgreSQL is not available locally.
@@ -76,6 +88,7 @@ uvicorn app.main:app --reload
 
 API docs:
 
+- Mini frontend: `http://localhost:8000/`
 - Swagger UI: `http://localhost:8000/docs`
 - OpenAPI JSON: `http://localhost:8000/openapi.json`
 
@@ -89,17 +102,20 @@ This starts:
 
 - `api` on `http://localhost:8000`
 - `postgres` on `localhost:5432`
-- `redis` on `localhost:6379`
-- `worker` for asynchronous code submissions
+- `rabbitmq` on `localhost:5672`, management UI on `http://localhost:15672`
+- `redis` on `localhost:6379` as Celery result backend
+- `worker` as a Celery worker for asynchronous code submissions
+- `prometheus` on `http://localhost:9090`
+- `grafana` on `http://localhost:3000`
 
 The worker runs Docker inside its container to execute submitted code. This requires privileged Docker support.
 
 ## Worker
 
-Run the queue worker locally:
+Run the Celery worker locally:
 
 ```powershell
-python -m app.run_code_submission_worker
+celery -A app.infrastructure.celery_app:celery_app worker --loglevel=info
 ```
 
 Process one submission manually:
@@ -108,13 +124,48 @@ Process one submission manually:
 python submit.py <submission_id>
 ```
 
+## Metrics
+
+Prometheus scrapes the API at `/metrics`. Grafana can use Prometheus at
+`http://prometheus:9090` inside Docker Compose.
+
+## Health Checks
+
+- `GET /health` returns liveness metadata.
+- `GET /ready` checks database access and required broker/result-backend configuration.
+
+## Account Security
+
+Login returns an access token and a refresh token. Use `POST /api/auth/refresh`
+with the refresh token to rotate both tokens. JWTs include a token type claim,
+and access-token protected routes reject refresh tokens. Refresh tokens are
+currently stateless; add a persisted token/session table before implementing
+server-side revocation or reuse detection.
+
+## Mini Frontend
+
+FastAPI serves a simple student workspace at `/`. It can list courses, open
+course structure, view lectures/questions/tasks/code tasks, sign in, and submit
+learning work through the existing API.
+
+## Rate Limiting
+
+API requests under `/api` are limited per client IP. Configure it with
+`RATE_LIMIT_ENABLED`, `RATE_LIMIT_REQUESTS` and `RATE_LIMIT_WINDOW_SECONDS`.
+
 ## Tests
 
 ```powershell
+python -m pip install -r requirements-dev.txt
 pytest -q
 ```
 
 Docker-dependent tests are skipped automatically when Docker is unavailable.
+
+## CI
+
+GitHub Actions runs dependency installation, Docker Compose config rendering,
+`ruff`, `mypy`, `pytest`, and `pip-audit`.
 
 ## Main API Areas
 
@@ -124,6 +175,7 @@ Docker-dependent tests are skipped automatically when Docker is unavailable.
 - `GET /api/lectures/{lecture_id}`
 - `POST /api/auth/register`
 - `POST /api/auth/login`
+- `POST /api/auth/refresh`
 - `GET /api/auth/me`
 - `POST /api/admin/courses`
 - `POST /api/admin/sections/{section_id}/questions`
@@ -136,4 +188,5 @@ Docker-dependent tests are skipped automatically when Docker is unavailable.
 
 ## Dependency Notes
 
-`requirements.txt` currently contains unpinned direct dependencies. For reproducible builds, pin versions or generate a lock file before production deployment.
+Runtime dependencies are pinned in `requirements.txt`. Development and CI tools
+are pinned in `requirements-dev.txt`.

@@ -2,7 +2,6 @@ from app.application.use_cases.code_submissions.complete_code_submission import 
     CompleteCodeSubmissionUseCase
 from app.application.use_cases.code_submissions.process_code_submission import \
     ProcessCodeSubmissionUseCase
-from app.bootstrap.build_submission_queue import build_submission_queue
 from app.domain.entities.code_task import CodeTaskLanguage
 from app.infrastructure.database.unit_of_work import SqlAlchemyUnitOfWork
 from app.infrastructure.execution.docker_code_execution_gateway import \
@@ -15,12 +14,10 @@ from app.infrastructure.execution.execution_profile_registry import (
 from app.infrastructure.execution.java_submission_bundle_builder import JavaSubmissionBundleBuilder
 from app.infrastructure.execution.python_submission_bundle_builder import \
     PythonSubmissionBundleBuilder
-from app.infrastructure.workers.code_submission_worker import CodeSubmissionWorker
 from app.infrastructure.database.database import SessionFactory
 
 
-def build_code_submission_worker() -> CodeSubmissionWorker:
-    queue = build_submission_queue()
+def build_process_code_submission_use_case() -> ProcessCodeSubmissionUseCase:
     uow = SqlAlchemyUnitOfWork(session_factory=SessionFactory)
     runner = DockerRunner(
         config=DockerRunConfig(),
@@ -47,7 +44,4 @@ def build_code_submission_worker() -> CodeSubmissionWorker:
         execution_gateway=execution_gateway,
         complete_use_case=complete_use_case,
     )
-    return CodeSubmissionWorker(
-        queue=queue,
-        process_use_case=process_use_case,
-    )
+    return process_use_case

@@ -8,5 +8,13 @@ class TokenService(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def create_refresh_token(self, user_id: UUID, role: str) -> str:
+        raise NotImplementedError
+
+    @abstractmethod
     def get_user_id(self, token: str) -> UUID:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_refresh_user_id(self, token: str) -> UUID:
         raise NotImplementedError

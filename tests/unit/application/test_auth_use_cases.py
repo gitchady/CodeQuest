@@ -56,11 +56,16 @@ class StubPasswordHasher:
 
 class StubTokenService:
     def create_access_token(self, user_id, role: str) -> str:
-        return f'token-for-{user_id}-{role}'
+        return f'access-token-for-{user_id}-{role}'
+
+    def create_refresh_token(self, user_id, role: str) -> str:
+        return f'refresh-token-for-{user_id}-{role}'
 
     def get_user_id(self, token: str):
         raise NotImplementedError
 
+    def get_refresh_user_id(self, token: str):
+        raise NotImplementedError
 
 @pytest.mark.asyncio
 async def test_register_user_creates_student_and_commits() -> None:
@@ -127,7 +132,8 @@ async def test_login_user_returns_access_token() -> None:
     )
 
     assert result.token_type == 'bearer'
-    assert result.access_token.startswith('token-for-')
+    assert result.access_token.startswith('access-token-for-')
+    assert result.refresh_token.startswith('refresh-token-for-')
 
 
 @pytest.mark.asyncio

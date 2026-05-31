@@ -32,4 +32,4 @@ COPY docker/worker-entrypoint.sh /usr/local/bin/worker-entrypoint.sh
 RUN chmod +x /usr/local/bin/worker-entrypoint.sh
 
 ENTRYPOINT ["worker-entrypoint.sh"]
-CMD ["python", "-m", "app.run_code_submission_worker"]
+CMD ["celery", "-A", "app.infrastructure.celery_app:celery_app", "worker", "--loglevel=info"]

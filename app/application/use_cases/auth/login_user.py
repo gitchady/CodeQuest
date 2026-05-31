@@ -41,4 +41,8 @@ class LoginUserUseCase:
                 user_id=user.id,
                 role=user.role.value,
             )
-            return AuthToken(access_token=access_token)
+            refresh_token = self.token_service.create_refresh_token(
+                user_id=user.id,
+                role=user.role.value,
+            )
+            return AuthToken(access_token=access_token, refresh_token=refresh_token)

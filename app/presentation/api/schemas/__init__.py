@@ -1,5 +1,5 @@
 from app.presentation.api.schemas.auth import RegisterUserRequest, RegisteredUserResponse, \
-    LoginRequest, TokenResponse, CurrentUserResponse
+    LoginRequest, TokenResponse, CurrentUserResponse, RefreshTokenRequest
 from app.presentation.api.schemas.content import (
     CourseListItemResponse,
     CourseResponse,
@@ -87,6 +87,7 @@ __all__ = [
     "RegisteredUserResponse",
     "LoginRequest",
     "TokenResponse",
+    "RefreshTokenRequest",
     "CurrentUserResponse",
     'CreateQuestionRequest',
     'UpdateQuestionRequest',

@@ -54,20 +54,76 @@ async def test_login_returns_access_token(client, seeded_student_user):
     payload = response.json()
     assert payload['token_type'] == 'bearer'
     assert 'access_token' in payload
+    assert 'refresh_token' in payload
 
-    @pytest.mark.asyncio
-    async def test_login_returns_400_for_invalid_credentials(client):
-        response = await client.post(
-            '/api/auth/login',
-            json={
-                'email': 'missing@example.com',
-                'password': 'wrongpassword',
-            },
-        )
 
-        assert response.status_code == 400
-        payload = response.json()
-        assert payload['error'] == 'application_error'
+@pytest.mark.asyncio
+async def test_login_returns_400_for_invalid_credentials(client):
+    response = await client.post(
+        '/api/auth/login',
+        json={
+            'email': 'missing@example.com',
+            'password': 'wrongpassword',
+        },
+    )
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload['error'] == 'application_error'
+
+
+@pytest.mark.asyncio
+async def test_refresh_returns_new_tokens(client, seeded_student_user):
+    login_response = await client.post(
+        '/api/auth/login',
+        json={
+            'email': 'student@example.com',
+            'password': 'strongpassword123',
+        },
+    )
+
+    response = await client.post(
+        '/api/auth/refresh',
+        json={'refresh_token': login_response.json()['refresh_token']},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['token_type'] == 'bearer'
+    assert 'access_token' in payload
+    assert 'refresh_token' in payload
+
+
+@pytest.mark.asyncio
+async def test_refresh_rejects_access_token(client, seeded_student_user):
+    login_response = await client.post(
+        '/api/auth/login',
+        json={
+            'email': 'student@example.com',
+            'password': 'strongpassword123',
+        },
+    )
+
+    response = await client.post(
+        '/api/auth/refresh',
+        json={'refresh_token': login_response.json()['access_token']},
+    )
+
+    assert response.status_code == 401
+    payload = response.json()
+    assert payload['error'] == 'authentication_error'
+
+
+@pytest.mark.asyncio
+async def test_auth_me_rejects_malformed_token(client):
+    response = await client.get(
+        '/api/auth/me',
+        headers={'Authorization': 'Bearer not-a-jwt'},
+    )
+
+    assert response.status_code == 401
+    payload = response.json()
+    assert payload['error'] == 'authentication_error'
 
 @pytest.mark.asyncio
 async def test_auth_me_returns_current_user(client, student_auth_headers):

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Perminof</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="/static/app.css">
+  </head>
+  <body>
+    <main class="page">
+      <header class="topbar">
+        <div>
+          <h1>Perminof</h1>
+          <p>Courses, lessons and practice.</p>
+        </div>
+        <div class="session">
+          <span id="apiStatus">Idle</span>
+          <span id="tokenStatus">Guest</span>
+        </div>
+      </header>
+
+      <section class="login-panel">
+        <form id="loginForm">
+          <input id="emailInput" type="email" autocomplete="email" placeholder="Email" required>
+          <input id="passwordInput" type="password" autocomplete="current-password" placeholder="Password" required>
+          <button type="submit">Sign in</button>
+          <button id="logoutButton" class="secondary hidden" type="button">Sign out</button>
+        </form>
+      </section>
+
+      <section class="layout">
+        <aside class="panel">
+          <div class="panel-heading">
+            <h2>Courses</h2>
+            <button id="refreshCourses" class="secondary" type="button">Refresh</button>
+          </div>
+          <div id="courseList" class="list" aria-live="polite"></div>
+        </aside>
+
+        <section class="panel">
+          <h2 id="courseTitle">Course structure</h2>
+          <div id="structurePanel" class="list">
+            <p class="empty">Select a course.</p>
+          </div>
+        </section>
+
+        <section class="panel detail">
+          <h2>Details</h2>
+          <article id="detailPanel">
+            <p class="empty">Open an item from the course structure.</p>
+          </article>
+        </section>
+      </section>
+    </main>
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>

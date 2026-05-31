@@ -19,6 +19,18 @@ class JwtSettings(BaseModel):
     secret_key: str
     algorithm: str
     access_token_expire_minutes: int
+    refresh_token_expire_minutes: int
+
+
+class CelerySettings(BaseModel):
+    broker_url: str
+    result_backend: str
+
+
+class RateLimitSettings(BaseModel):
+    enabled: bool
+    requests: int
+    window_seconds: int
 
 
 class Settings(BaseSettings):
@@ -43,13 +55,23 @@ class Settings(BaseSettings):
         default=30,
         validation_alias='JWT_ACCESS_TOKEN_EXPIRE_MINUTES',
     )
-    redis_url: str = Field(
-        default='redis://localhost:6379/0',
-        validation_alias='REDIS_URL',
+    jwt_refresh_token_expire_minutes: int = Field(
+        default=43200,
+        validation_alias='JWT_REFRESH_TOKEN_EXPIRE_MINUTES',
     )
-    submission_queue_name: str = Field(
-        default='code-submissions',
-        validation_alias='SUBMISSION_QUEUE_NAME',
+    celery_broker_url: str = Field(
+        default='amqp://guest:guest@localhost:5672//',
+        validation_alias='CELERY_BROKER_URL',
+    )
+    celery_result_backend: str = Field(
+        default='redis://localhost:6379/1',
+        validation_alias='CELERY_RESULT_BACKEND',
+    )
+    rate_limit_enabled: bool = Field(default=True, validation_alias='RATE_LIMIT_ENABLED')
+    rate_limit_requests: int = Field(default=120, validation_alias='RATE_LIMIT_REQUESTS')
+    rate_limit_window_seconds: int = Field(
+        default=60,
+        validation_alias='RATE_LIMIT_WINDOW_SECONDS',
     )
 
     @property
@@ -73,6 +95,22 @@ class Settings(BaseSettings):
             secret_key=self.jwt_secret_key,
             algorithm=self.jwt_algorithm,
             access_token_expire_minutes=self.jwt_access_token_expire_minutes,
+            refresh_token_expire_minutes=self.jwt_refresh_token_expire_minutes,
+        )
+
+    @property
+    def celery(self) -> CelerySettings:
+        return CelerySettings(
+            broker_url=self.celery_broker_url,
+            result_backend=self.celery_result_backend,
+        )
+
+    @property
+    def rate_limit(self) -> RateLimitSettings:
+        return RateLimitSettings(
+            enabled=self.rate_limit_enabled,
+            requests=self.rate_limit_requests,
+            window_seconds=self.rate_limit_window_seconds,
         )
 
 
