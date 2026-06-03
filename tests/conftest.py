@@ -60,7 +60,7 @@ def ensure_safe_test_database_url(database_url: str) -> None:
     )
 
 
-@pytest_asyncio.fixture(scope='session')
+@pytest_asyncio.fixture(scope='session', loop_scope='session')
 async def test_engine(tmp_path_factory) -> AsyncIterator:
     database_url = os.environ.get('TEST_DATABASE_URL')
     database_path = None
